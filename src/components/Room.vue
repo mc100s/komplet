@@ -11,15 +11,22 @@
     </ul>
 
     <h2>Phrase à compléter</h2>
-    <div>{{ sentenceToComplete }}</div>
+    <p>{{ sentenceToComplete }}</p>
+
+    <h2>Users connectés</h2>
+    <p v-for="player in players">
+      {{ player.name }} :
+      <strong v-if="player.chosenCard">carte choisie</strong>
+      <strong v-else>carte non choisie</strong>
+    </p>
 
     <div v-if="connectedPlayer">
       <h2>Les cartes de {{ connectedPlayer.name }}</h2>
-      <p v-for="card in cards">
-        Carte : <strong>{{ card.text }}</strong>
+      <p v-for="card in connectedPlayer.cards">
+        <!-- Carte : <strong>{{ card.text }}</strong> -->
+        Carte : <strong>{{ card }}</strong>
         <button v-on:click="selectCard(card)">Choisir cette carte</button>
       </p>
-      <!-- <div>{{ sentenceToComplete }}</div> -->
     </div>
 
     <!-- <h2>Divers</h2> -->
@@ -28,12 +35,12 @@
 </template>
 
 <script>
-import Firebase from 'firebase'
+import firebase from 'firebase'
 var config = {
   databaseURL: 'https://komplet-95d95.firebaseio.com/'
 }
 
-var db = Firebase.initializeApp(config).database()
+var db = firebase.initializeApp(config).database()
 var dbRef = db.ref('/')
 var testRef = db.ref('test')
 var roomRef = db.ref('rooms/0')
@@ -48,6 +55,7 @@ export default {
       room: null,
       players: null,
       sentenceToComplete: '',
+      cards: null,
       connectedPlayer: null,
       cards: null
     }
@@ -56,12 +64,43 @@ export default {
     connect: function (player) {
       var self = this
       this.connectedPlayer = player
-      self.cards = player.cards
+      console.log(player)
+      // self.cards = player.cards
     },
     selectCard: function (card) {
-      // TODO: delete card from player's hand
-      // TODO: push card for this sentence
+      var self = this
+      var newPostKey = firebase.database().ref().child('test').push().key
+      console.log(newPostKey)
+      // console.log(firebase.database().ref().child('test').remove())
+
+      // Push chosen card for this sentence
+      dbRef.child('rooms/0/players/0/chosenCard').push(card)
+
+      // Delete card from player's hand
+      dbRef.child('rooms/0/players/0/cards/').orderByChild('text').equalTo(card.text).once('value', function(snapshot) {
+        var updates = {};
+        snapshot.forEach(function(child){
+          updates[child.key] = null;
+        });
+        dbRef.child('rooms/0/players/0/cards/').update(updates);
+      })
+
+      this.chooseNewCards()
     },
+    chooseNewCards: function () {
+      console.log('chooseNewCards')
+      var self = this
+      var newCard = arrayRandomValue(this.cards)
+      dbRef.child('rooms/0/players/0/cards').push(newCard);
+      dbRef.child('rooms/0/players/0/cards').once('value', function(snapshot) {
+        self.connectedPlayer.cards = snapshot.val()
+        var length = Object.keys(self.connectedPlayer.cards).length
+        // console.log("", Object.keys(self.connectedPlayer.cards).length)
+        if (length < 5) {
+          self.chooseNewCards()
+        }
+      });
+    }
   },
   created: function () {
     var self = this
@@ -70,12 +109,17 @@ export default {
       self.room = snapshot.val().rooms[0]
       self.players = self.room.players
       self.sentenceToComplete = self.room.currentSentence
+      self.cards = snapshot.val().cards
     });
     roomRef.on('value', function(snapshot) {
     });
   }
 }
 
+/* Utilities functions */
+var arrayRandomValue = function(a) {
+  return a[Math.floor(Math.random() * a.length)]
+}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

@@ -29,12 +29,16 @@
       </p>
     </div>
 
+    <div v-if="status == 'showWinner'">
+      <h2 class="red">Bravo {{ winner.name }}, tu as désormais {{ winner.score }} points !</h2>
+    </div>
+
     <div v-if="connectedPlayer">
       <h2>Les éléments de {{ connectedPlayer.name }}</h2>
       <p v-for="card in connectedPlayer.cards">
         <!-- Carte : <strong>{{ card.text }}</strong> -->
-        Carte : <strong>{{ card }}</strong>
-        <button v-on:click="selectCard(card)">Choisir cette carte</button>
+        Carte : <strong>{{ card.text }}</strong>
+        <button v-if="!connectedPlayer.chosenCard" v-on:click="selectCard(card)">Choisir cette carte</button>
       </p>
     </div>
 
@@ -59,14 +63,13 @@ export default {
   data () {
     return {
       msg: 'Bienvenue sur la room "' + this.$route.params.roomName + '"',
+      connectedPlayer: null,
       test: '',
       room: null,
       players: null,
       sentenceToComplete: '',
-      cards: null,
-      connectedPlayer: null,
-      cards: null,
-      status: ''
+      status: '',
+      winner: null
     }
   },
   methods: {
@@ -135,32 +138,46 @@ export default {
       })
     },
     electCard: function (player) {
+      var self = this
       dbRef.child('rooms/0/players/' + player.id + '/score').set(player.score + 1)
       for (var i = 0; i < this.players.length; i++) {
         dbRef.child('rooms/0/players/' + this.players[i].id + '/chosenCard').remove()
       }
-      this.setStatus('waitingForCards')
+      this.setStatus('showWinner')
+      dbRef.child('rooms/0/winner').set(player)
+      setTimeout(function(){
+        // dbRef.child('rooms/0/currentSentence').set('Lorem ipsum') // TODO: change a setence !!!
+        self.setStatus('waitingForCards')
+      }, 3000)
     },
     setStatus: function (status) {
-      this.status = status
       dbRef.child('rooms/0/status').set(status)
     }
   },
   created: function () {
     var self = this
-    this.test = 'Bob l\'éponge'
     dbRef.on('value', function(snapshot) {
       self.room = snapshot.val().rooms[0]
       self.players = self.room.players
       self.sentenceToComplete = self.room.currentSentence
       self.cards = snapshot.val().cards
+      self.checkStatus()
     });
+
+    // Updates of every variable on room changes
     roomRef.on('value', function(snapshot) {
+      self.room = snapshot.val()
+      self.players = snapshot.val().players
+      self.sentenceToComplete = snapshot.val().currentSentence
+      self.status = snapshot.val().status
+      self.winner = snapshot.val().winner
+
+      if (self.connectedPlayer && self.connectedPlayer.id != null)
+        self.connectedPlayer = self.players[self.connectedPlayer.id]
     });
     db.ref('/room/0/status').on('value', function(snapshot) {
       self.status = snapshot.val()
     })
-    self.checkStatus()
   }
 }
 
@@ -188,5 +205,9 @@ li {
 
 a {
   color: #42b983;
+}
+
+.red {
+  color: red;
 }
 </style>

@@ -13,15 +13,24 @@
     <h2>Phrase à compléter</h2>
     <p>{{ sentenceToComplete }}</p>
 
-    <h2>Users connectés</h2>
-    <p v-for="player in players">
-      {{ player.name }} :
-      <strong v-if="player.chosenCard">carte choisie</strong>
-      <strong v-else>carte non choisie</strong>
-    </p>
+    <div v-if="status != 'waitingBestCardElection'">
+      <h2>Users connectés</h2>
+      <p v-for="player in players">
+        {{ player.name }} :
+        <strong v-if="player.chosenCard">carte choisie</strong>
+        <strong v-else>carte non choisie</strong>
+      </p>
+    </div>
+
+    <div v-if="status == 'waitingBestCardElection'">
+      <h2>Les cartes à choisir</h2>
+      <p v-for="player in players">
+        <button v-if="player.chosenCard" v-on:click="electCard(player)">{{ player.chosenCard.text }}</button>
+      </p>
+    </div>
 
     <div v-if="connectedPlayer">
-      <h2>Les cartes de {{ connectedPlayer.name }}</h2>
+      <h2>Les éléments de {{ connectedPlayer.name }}</h2>
       <p v-for="card in connectedPlayer.cards">
         <!-- Carte : <strong>{{ card.text }}</strong> -->
         Carte : <strong>{{ card }}</strong>
@@ -44,7 +53,6 @@ var db = firebase.initializeApp(config).database()
 var dbRef = db.ref('/')
 var testRef = db.ref('test')
 var roomRef = db.ref('rooms/0')
-var playerRef = db.ref('rooms/0/players/0')
 
 export default {
   name: 'room',
@@ -57,7 +65,8 @@ export default {
       sentenceToComplete: '',
       cards: null,
       connectedPlayer: null,
-      cards: null
+      cards: null,
+      status: ''
     }
   },
   methods: {
@@ -74,15 +83,17 @@ export default {
       // console.log(firebase.database().ref().child('test').remove())
 
       // Push chosen card for this sentence
-      dbRef.child('rooms/0/players/0/chosenCard').push(card)
+      dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/chosenCard').set(card , function(snapshot) {
+        self.checkStatus()
+      })
 
       // Delete card from player's hand
-      dbRef.child('rooms/0/players/0/cards/').orderByChild('text').equalTo(card.text).once('value', function(snapshot) {
+      dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards/').orderByChild('text').equalTo(card.text).once('value', function(snapshot) {
         var updates = {};
         snapshot.forEach(function(child){
           updates[child.key] = null;
         });
-        dbRef.child('rooms/0/players/0/cards/').update(updates);
+        dbRef.child('rooms/0/players/' + self.connectedPlayer.id + '/cards/').update(updates);
       })
 
       this.chooseNewCards()
@@ -91,15 +102,48 @@ export default {
       console.log('chooseNewCards')
       var self = this
       var newCard = arrayRandomValue(this.cards)
-      dbRef.child('rooms/0/players/0/cards').push(newCard);
-      dbRef.child('rooms/0/players/0/cards').once('value', function(snapshot) {
+      dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').push(newCard);
+      dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').once('value', function(snapshot) {
         self.connectedPlayer.cards = snapshot.val()
         var length = Object.keys(self.connectedPlayer.cards).length
         // console.log("", Object.keys(self.connectedPlayer.cards).length)
         if (length < 5) {
           self.chooseNewCards()
         }
+        self.checkStatus()
       });
+    },
+    checkStatus: function () {
+      var self = this
+      dbRef.child('rooms/0/status').once('value', function(snapshot) {
+        self.status = snapshot.val()
+        if (self.status == 'started') {
+          self.status = 'waitingForCards'
+          dbRef.child('rooms/0/status').set(self.status)
+        }
+        if (self.status == 'waitingForCards') {
+          var stillWaitingCards = false
+          for (var i = 0; i < self.players.length; i++) {
+            if (!self.players[i].chosenCard)
+              stillWaitingCards = true
+          }
+          if (!stillWaitingCards) {
+            self.status = 'waitingBestCardElection'
+            dbRef.child('rooms/0/status').set(self.status)
+          }
+        }
+      })
+    },
+    electCard: function (player) {
+      dbRef.child('rooms/0/players/' + player.id + '/score').set(player.score + 1)
+      for (var i = 0; i < this.players.length; i++) {
+        dbRef.child('rooms/0/players/' + this.players[i].id + '/chosenCard').remove()
+      }
+      this.setStatus('waitingForCards')
+    },
+    setStatus: function (status) {
+      this.status = status
+      dbRef.child('rooms/0/status').set(status)
     }
   },
   created: function () {
@@ -113,6 +157,10 @@ export default {
     });
     roomRef.on('value', function(snapshot) {
     });
+    db.ref('/room/0/status').on('value', function(snapshot) {
+      self.status = snapshot.val()
+    })
+    self.checkStatus()
   }
 }
 

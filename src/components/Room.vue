@@ -65,6 +65,7 @@ export default {
       msg: 'Bienvenue sur la room "' + this.$route.params.roomName + '"',
       connectedPlayer: null,
       test: '',
+      sentences: null,
       room: null,
       players: null,
       sentenceToComplete: '',
@@ -76,14 +77,10 @@ export default {
     connect: function (player) {
       var self = this
       this.connectedPlayer = player
-      console.log(player)
-      // self.cards = player.cards
     },
     selectCard: function (card) {
       var self = this
       var newPostKey = firebase.database().ref().child('test').push().key
-      console.log(newPostKey)
-      // console.log(firebase.database().ref().child('test').remove())
 
       // Push chosen card for this sentence
       dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/chosenCard').set(card , function(snapshot) {
@@ -102,14 +99,12 @@ export default {
       this.chooseNewCards()
     },
     chooseNewCards: function () {
-      console.log('chooseNewCards')
       var self = this
       var newCard = arrayRandomValue(this.cards)
       dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').push(newCard);
       dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').once('value', function(snapshot) {
         self.connectedPlayer.cards = snapshot.val()
         var length = Object.keys(self.connectedPlayer.cards).length
-        // console.log("", Object.keys(self.connectedPlayer.cards).length)
         if (length < 5) {
           self.chooseNewCards()
         }
@@ -126,10 +121,10 @@ export default {
         }
         if (self.status == 'waitingForCards') {
           var stillWaitingCards = false
-          for (var i = 0; i < self.players.length; i++) {
-            if (!self.players[i].chosenCard)
+          Object.keys(self.players).map(function(playerId, index) {
+            if (!self.players[playerId].chosenCard)
               stillWaitingCards = true
-          }
+          })
           if (!stillWaitingCards) {
             self.status = 'waitingBestCardElection'
             dbRef.child('rooms/0/status').set(self.status)
@@ -140,13 +135,13 @@ export default {
     electCard: function (player) {
       var self = this
       dbRef.child('rooms/0/players/' + player.id + '/score').set(player.score + 1)
-      for (var i = 0; i < this.players.length; i++) {
-        dbRef.child('rooms/0/players/' + this.players[i].id + '/chosenCard').remove()
-      }
+      Object.keys(self.players).map(function(playerId, index) {
+        dbRef.child('rooms/0/players/' + self.players[playerId].id + '/chosenCard').remove()
+      })
       this.setStatus('showWinner')
       dbRef.child('rooms/0/winner').set(player)
       setTimeout(function(){
-        // dbRef.child('rooms/0/currentSentence').set('Lorem ipsum') // TODO: change a setence !!!
+        dbRef.child('rooms/0/currentSentence').set(pickRandomProperty(self.sentences).text)
         self.setStatus('waitingForCards')
       }, 3000)
     },
@@ -157,6 +152,7 @@ export default {
   created: function () {
     var self = this
     dbRef.on('value', function(snapshot) {
+      self.sentences = snapshot.val().sentences
       self.room = snapshot.val().rooms[0]
       self.players = self.room.players
       self.sentenceToComplete = self.room.currentSentence
@@ -185,6 +181,10 @@ export default {
 var arrayRandomValue = function(a) {
   return a[Math.floor(Math.random() * a.length)]
 }
+var pickRandomProperty = function (obj) {
+  var keys = Object.keys(obj)
+  return obj[keys[ keys.length * Math.random() << 0]];
+};
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

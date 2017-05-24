@@ -9,31 +9,46 @@
         <a href="" onclick="return false">Se connecter en tant que {{ player.name }}</a>
       </li>
     </ul>
+    <hr>
+
 
     <h2>Phrase à compléter</h2>
     <p>{{ sentenceToComplete }}</p>
+    <hr>
+
 
     <div v-if="status != 'waitingBestCardElection'">
       <h2>Users connectés</h2>
       <p v-for="player in players">
         {{ player.name }} :
         <strong v-if="player.chosenCard">carte choisie</strong>
-        <strong v-else>carte non choisie</strong>
+        <strong v-if="player.isMasterPlayer">maitre du tour</strong>
+        <strong v-if="!player.chosenCard && !player.isMasterPlayer">carte non choisie</strong>
       </p>
+      <hr>
     </div>
+
 
     <div v-if="status == 'waitingBestCardElection'">
       <h2>Les cartes à choisir</h2>
-      <p v-for="player in players">
+      <p v-if="connectedPlayer && connectedPlayer.isMasterPlayer" v-for="player in players">
         <button v-if="player.chosenCard" v-on:click="electCard(player)">{{ player.chosenCard.text }}</button>
       </p>
+      <div v-if="connectedPlayer && !connectedPlayer.isMasterPlayer">
+        <div v-for="player in players">
+          <p v-if="player.chosenCard">{{ player.chosenCard.text }}</p>
+        </div>
+      </div>
+      <hr>
     </div>
+
 
     <div v-if="status == 'showWinner'">
       <h2 class="red">Bravo {{ winner.name }}, tu as désormais {{ winner.score }} points !</h2>
+      <hr>
     </div>
 
-    <div v-if="connectedPlayer">
+    <div v-if="connectedPlayer && !connectedPlayer.isMasterPlayer">
       <h2>Les éléments de {{ connectedPlayer.name }}</h2>
       <p v-for="card in connectedPlayer.cards">
         <!-- Carte : <strong>{{ card.text }}</strong> -->
@@ -122,7 +137,7 @@ export default {
         if (self.status == 'waitingForCards') {
           var stillWaitingCards = false
           Object.keys(self.players).map(function(playerId, index) {
-            if (!self.players[playerId].chosenCard)
+            if (!self.players[playerId].chosenCard && !self.players[playerId].isMasterPlayer)
               stillWaitingCards = true
           })
           if (!stillWaitingCards) {
@@ -143,10 +158,27 @@ export default {
       setTimeout(function(){
         dbRef.child('rooms/0/currentSentence').set(pickRandomProperty(self.sentences).text)
         self.setStatus('waitingForCards')
+        self.chooseNewMasterPlayer()
       }, 3000)
     },
     setStatus: function (status) {
       dbRef.child('rooms/0/status').set(status)
+    },
+    chooseNewMasterPlayer: function () {
+      var self = this
+      var nbPlayers = Object.keys(self.players).length
+      var indexMasterPlayer = 0
+
+      Object.keys(self.players).map(function(playerId, index) {
+        var player = self.players[playerId]
+        if (player.isMasterPlayer)
+          indexMasterPlayer = (index+1)%nbPlayers // Next index
+      })
+
+      Object.keys(self.players).map(function(playerId, index) {
+        var isMasterPlayer = index == indexMasterPlayer
+        dbRef.child('rooms/0/players/'+playerId+'/isMasterPlayer').set(isMasterPlayer)
+      })
     }
   },
   created: function () {

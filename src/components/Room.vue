@@ -1,60 +1,104 @@
 <template>
   <div class="hello">
-    <h1>{{ msg }}</h1>
-    <h2>Liens</h2>
-    <ul>
-      <li><router-link to="/">Home</router-link></li>
-
-      <li v-for="player in players" v-on:click="connect(player)">
-        <a href="" onclick="return false">Se connecter en tant que {{ player.name }}</a>
-      </li>
-    </ul>
-    <hr>
-
-
-    <h2>Phrase à compléter</h2>
-    <p>{{ sentenceToComplete }}</p>
-    <hr>
-
-
-    <div v-if="status != 'waitingBestCardElection'">
-      <h2>Users connectés</h2>
-      <p v-for="player in players">
-        {{ player.name }} :
-        <strong v-if="player.chosenCard">carte choisie</strong>
-        <strong v-if="player.isMasterPlayer">maitre du tour</strong>
-        <strong v-if="!player.chosenCard && !player.isMasterPlayer">carte non choisie</strong>
-      </p>
-      <hr>
-    </div>
-
-
-    <div v-if="status == 'waitingBestCardElection'">
-      <h2>Les cartes à choisir</h2>
-      <p v-if="connectedPlayer && connectedPlayer.isMasterPlayer" v-for="player in players">
-        <button v-if="player.chosenCard" v-on:click="electCard(player)">{{ player.chosenCard.text }}</button>
-      </p>
-      <div v-if="connectedPlayer && !connectedPlayer.isMasterPlayer">
-        <div v-for="player in players">
-          <p v-if="player.chosenCard">{{ player.chosenCard.text }}</p>
+    <nav class="navbar  bg-faded">
+      <div class="container">
+        <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="navbar-brand">
+          <a  href="#"><i class="fa fa-lg fa-home" aria-hidden="true"> </i> Komplet</a> / {{ $route.params.roomName }}
+          
         </div>
+
+        <!-- <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav mr-auto">
+            <li class="nav-item active">
+              <a class="nav-link" href="#">Komplet <span class="sr-only">(current)</span></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#">Link</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link disabled" href="#">Disabled</a>
+            </li>
+          </ul>
+          <form class="form-inline my-2 my-lg-0">
+            <input class="form-control mr-sm-2" type="text" placeholder="Search">
+            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+          </form>
+        </div> -->
       </div>
+    </nav>
+
+
+
+    <div class="container">
+
+
+      <h2>Liens</h2>
+      <ul>
+        <li><router-link to="/">Home</router-link></li>
+
+        <li v-for="player in players" v-on:click="connect(player)">
+          <a href="" onclick="return false">Se connecter en tant que {{ player.name }}</a>
+        </li>
+      </ul>
       <hr>
-    </div>
 
 
-    <div v-if="status == 'showWinner'">
-      <h2 class="red">Bravo {{ winner.name }}, tu as désormais {{ winner.score }} points !</h2>
+      <h2>Phrase à compléter</h2>
+      <p>{{ sentenceToComplete }}</p>
       <hr>
-    </div>
 
-    <div v-if="connectedPlayer && !connectedPlayer.isMasterPlayer">
-      <h2>Les éléments de {{ connectedPlayer.name }}</h2>
-      <p v-for="card in connectedPlayer.cards">
-        <!-- Carte : <strong>{{ card.text }}</strong> -->
-        Carte : <strong>{{ card.text }}</strong>
-        <button v-if="!connectedPlayer.chosenCard" v-on:click="selectCard(card)">Choisir cette carte</button>
-      </p>
+
+      <div v-if="status != 'waitingBestCardElection'">
+        <h2>Users connectés</h2>
+        <p v-for="player in players">
+          {{ player.name }} :
+          <strong v-if="player.chosenCard">carte choisie</strong>
+          <strong v-if="player.isMasterPlayer">maitre du tour</strong>
+          <strong v-if="!player.chosenCard && !player.isMasterPlayer">carte non choisie</strong>
+        </p>
+        <hr>
+      </div>
+
+
+      <div v-if="status == 'waitingBestCardElection'">
+        <h2>Les cartes à choisir</h2>
+        <p v-if="connectedPlayer && connectedPlayer.isMasterPlayer" v-for="player in players">
+          <button v-if="player.chosenCard" v-on:click="electCard(player)">{{ player.chosenCard.text }}</button>
+        </p>
+        <div v-if="connectedPlayer && !connectedPlayer.isMasterPlayer">
+          <div v-for="player in players">
+            <p v-if="player.chosenCard">{{ player.chosenCard.text }}</p>
+          </div>
+        </div>
+        <hr>
+      </div>
+
+
+      <div v-if="status == 'showWinner'">
+        <h2 class="red">Bravo {{ winner.name }}, tu as désormais {{ winner.score }} points !</h2>
+        <hr>
+      </div>
+
+      <div v-if="connectedPlayer && !connectedPlayer.isMasterPlayer">
+        <h2>Les éléments de {{ connectedPlayer.name }}</h2>
+        <p v-for="card in connectedPlayer.cards">
+          <!-- Carte : <strong>{{ card.text }}</strong> -->
+          Carte : <strong>{{ card.text }}</strong>
+          <button v-if="!connectedPlayer.chosenCard" v-on:click="selectCard(card)">Choisir cette carte</button>
+        </p>
+      </div>
+
+      <div v-if="!connectedPlayer">
+        <p>
+          <input v-model="name" type="text"> <button v-on:click="connectWithName(name)">Se connecter</button>
+          <br>
+          <br>
+          <button v-on:click="reinit()" class="btn btn-sm btn-danger">Réinitialiser</button>
+        </p>
+      </div>
     </div>
 
     <!-- <h2>Divers</h2> -->
@@ -65,8 +109,13 @@
 <script>
 import firebase from 'firebase'
 var config = {
-  databaseURL: 'https://komplet-95d95.firebaseio.com/'
-}
+  apiKey: "AIzaSyCd9Cs7jN1z59CFH8SGVhRUm7vUJb-3OQ4",
+  authDomain: "komplet-95d95.firebaseapp.com",
+  databaseURL: "https://komplet-95d95.firebaseio.com",
+  projectId: "komplet-95d95",
+  storageBucket: "komplet-95d95.appspot.com",
+  messagingSenderId: "560302182334"
+};
 
 var db = firebase.initializeApp(config).database()
 var dbRef = db.ref('/')
@@ -78,6 +127,7 @@ export default {
   data () {
     return {
       msg: 'Bienvenue sur la room "' + this.$route.params.roomName + '"',
+      name: '',
       connectedPlayer: null,
       test: '',
       sentences: null,
@@ -92,6 +142,43 @@ export default {
     connect: function (player) {
       var self = this
       this.connectedPlayer = player
+    },
+    connectWithName: function (inputName) {
+      if (inputName == '')
+        return
+      var self = this
+      var playerAlreadyInGame = false
+      if (self.players) {
+        Object.keys(self.players).map(function(playerId, index) {
+          var player = self.players[playerId]
+          if (player.name == inputName) {
+            self.connectedPlayer = player
+            playerAlreadyInGame = true
+          }
+        })
+      }
+      // If player not already in game, create new player
+      if (!playerAlreadyInGame) {
+        var newPlayer = {
+          name: inputName,
+          isMasterPlayer: self.players == null,
+          score: 0
+        }
+
+        var playerId = dbRef.child('rooms/0/players').push(newPlayer, function(error) {
+          if (!error) {
+            console.log("Joueur créé : ", self.players[playerId])
+            dbRef.child('rooms/0/players/'+playerId+'/id').set(playerId, function(snapshot) {
+              self.connectedPlayer = self.players[playerId]
+              self.chooseNewCards()
+            })
+          }
+        }).key
+
+
+        // self.connectedPlayer = self.createNewPlayer(inputName)
+      }
+      // this.connectedPlayer = player
     },
     selectCard: function (card) {
       var self = this
@@ -115,6 +202,8 @@ export default {
     },
     chooseNewCards: function () {
       var self = this
+      if (!this.connectedPlayer.id)
+        return
       var newCard = arrayRandomValue(this.cards)
       dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').push(newCard);
       dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').once('value', function(snapshot) {
@@ -136,6 +225,8 @@ export default {
         }
         if (self.status == 'waitingForCards') {
           var stillWaitingCards = false
+          if (!self.players)
+            return
           Object.keys(self.players).map(function(playerId, index) {
             if (!self.players[playerId].chosenCard && !self.players[playerId].isMasterPlayer)
               stillWaitingCards = true
@@ -179,6 +270,44 @@ export default {
         var isMasterPlayer = index == indexMasterPlayer
         dbRef.child('rooms/0/players/'+playerId+'/isMasterPlayer').set(isMasterPlayer)
       })
+    },
+    reinit: function () {
+      var roomContent = {
+        "currentSentence" : "Le plus adroit, c'est ...",
+        // "players" : {
+        //   "0" : {
+        //     "cards" : {
+        //       "-KkuF42WEoQApiYqqzrs" : {
+        //         "id" : 4,
+        //         "text" : "Donald Trump"
+        //       },
+        //       "-KkuF42c-YLdmHlIzbPS" : {
+        //         "id" : 1,
+        //         "text" : "Superman"
+        //       },
+        //       "-KkuFGroNcyn7XsLGj0G" : {
+        //         "id" : 0,
+        //         "text" : "Emmanuel Macron"
+        //       },
+        //       "-KkuU9SWewhV3ONuD4f9" : {
+        //         "id" : 1,
+        //         "text" : "Superman"
+        //       },
+        //       "-KkuU9SlOv1GKpLOfES_" : {
+        //         "id" : 1,
+        //         "text" : "Superman"
+        //       }
+        //     },
+        //     "id" : 0,
+        //     "isMasterPlayer" : false,
+        //     "name" : "Maxence",
+        //     "score" : 1
+        //   }
+        // },
+       "roomName" : this.room.roomName,
+        "status" : "waitingForCards"
+      }
+      dbRef.child('rooms/0').set(roomContent)
     }
   },
   created: function () {
@@ -221,6 +350,10 @@ var pickRandomProperty = function (obj) {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.navbar {
+  margin-bottom: 20px;
+}
+
 h1, h2 {
   font-weight: normal;
 }

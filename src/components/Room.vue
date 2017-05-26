@@ -34,33 +34,20 @@
 
     <div class="container">
 
-
-      <h2>Liens</h2>
-      <ul>
-        <li><router-link to="/">Home</router-link></li>
-
-        <li v-for="player in players" v-on:click="connect(player)">
-          <a href="" onclick="return false">Se connecter en tant que {{ player.name }}</a>
-        </li>
-      </ul>
-      <hr>
-
-
-      <h2>Phrase à compléter</h2>
-      <p>{{ sentenceToComplete }}</p>
-      <hr>
-
-
-      <div v-if="status != 'waitingBestCardElection'">
-        <h2>Users connectés</h2>
-        <p v-for="player in players">
-          {{ player.name }} :
-          <strong v-if="player.chosenCard">carte choisie</strong>
-          <strong v-if="player.isMasterPlayer">maitre du tour</strong>
-          <strong v-if="!player.chosenCard && !player.isMasterPlayer">carte non choisie</strong>
-        </p>
-        <hr>
+      <div class="row">
+        <div v-for="player in players" class="col-4 col-sm-3">
+          <div v-on:click="!connectedPlayer ? connect(player) : connectedPlayer = null" v-bind:class="{ 'card-warning': player.isMasterPlayer, 'card-primary': player.chosenCard, 'card-info': !player.chosenCard && !player.isMasterPlayer, 'card-border': player == connectedPlayer }" class="card card-inverse mb-4">
+            <div class="card-block">
+              <div class="card-title">{{ player.score }}</div>
+              <div class="card-text">{{ player.name }}</div>
+            </div>
+          </div>
+        </div>
       </div>
+
+
+      <p class="lead">{{ sentenceToComplete }}</p>
+      <hr>
 
 
       <div v-if="status == 'waitingBestCardElection'">
@@ -83,12 +70,15 @@
       </div>
 
       <div v-if="connectedPlayer && !connectedPlayer.isMasterPlayer">
-        <h2>Les éléments de {{ connectedPlayer.name }}</h2>
-        <p v-for="card in connectedPlayer.cards">
-          <!-- Carte : <strong>{{ card.text }}</strong> -->
-          Carte : <strong>{{ card.text }}</strong>
-          <button v-if="!connectedPlayer.chosenCard" v-on:click="selectCard(card)">Choisir cette carte</button>
-        </p>
+        <div v-for="card in connectedPlayer.cards"
+             v-on:click="selectCardIfConnected(card)"
+             v-bind:class="{'card-primary': connectedPlayer.chosenCard, 'card-info': !connectedPlayer.chosenCard}"
+             class="card card-inverse mb-3">
+          <div class="card-block">
+            {{ card.text }}
+          </div>
+        </div>
+
       </div>
 
       <div v-if="!connectedPlayer">
@@ -199,6 +189,10 @@ export default {
       })
 
       this.chooseNewCards()
+    },
+    selectCardIfConnected: function () {
+      if (this.connectedPlayer != null)
+        this.selectCard()
     },
     chooseNewCards: function () {
       var self = this
@@ -374,5 +368,15 @@ a {
 
 .red {
   color: red;
+}
+
+.card-block {
+  padding: 10px;
+}
+.card-block .card-title {
+  font-size: 1.5em;
+}
+.card-border {
+  border: 2px solid black;
 }
 </style>

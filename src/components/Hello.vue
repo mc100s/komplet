@@ -3,8 +3,7 @@
     <h1>{{ msg }}</h1>
     <h2>Choix de la room</h2>
     <ul>
-      <li><router-link to="soiree">Soirée</router-link></li>
-      <li><router-link to="soiree2">Soirée 2</router-link></li>
+      <li><router-link to="bouret">Bouret</router-link></li>
       <li><router-link to="test">Test</router-link></li>
     </ul>
   </div>
@@ -23,6 +22,9 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+h1 {
+  margin-top: 42px;
+}
 h1, h2 {
   font-weight: normal;
 }

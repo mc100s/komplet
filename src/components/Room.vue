@@ -36,7 +36,7 @@
 
       <div class="row">
         <div v-for="player in players" class="col-4 col-sm-3">
-          <div v-on:click="!connectedPlayer ? connect(player) : connectedPlayer = null" v-bind:class="{ 'card-warning': player.isMasterPlayer, 'card-primary': player.chosenCard, 'card-info': !player.chosenCard && !player.isMasterPlayer, 'card-border': player == connectedPlayer }" class="card card-inverse mb-4">
+          <div v-on:click="!connectedPlayer ? connect(player) : connectedPlayer = null" v-bind:class="{ 'card-warning': player.isMasterPlayer, 'card-primary': player.chosenCard, 'card-info': !player.chosenCard && !player.isMasterPlayer, 'card-border': connectedPlayer && player.id == connectedPlayer.id }" class="card card-inverse mb-4">
             <div class="card-block">
               <div class="card-title">{{ player.score }}</div>
               <div class="card-text">{{ player.name }}</div>
@@ -52,12 +52,20 @@
 
       <div v-if="status == 'waitingBestCardElection'">
         <h2>Les cartes à choisir</h2>
-        <p v-if="connectedPlayer && connectedPlayer.isMasterPlayer" v-for="player in players">
-          <button v-if="player.chosenCard" v-on:click="electCard(player)">{{ player.chosenCard.text }}</button>
-        </p>
-        <div v-if="connectedPlayer && !connectedPlayer.isMasterPlayer">
-          <div v-for="player in players">
-            <p v-if="player.chosenCard">{{ player.chosenCard.text }}</p>
+        <div v-for="player in getPlayersWithChosenCards(players)">
+          <div v-if="player.chosenCard">
+            <div v-if="connectedPlayer && connectedPlayer.isMasterPlayer"
+                  v-on:click="electCard(player)"
+                  class="card card-warning card-inverse mb-3" >
+              <div class="card-block">
+                {{ player.chosenCard.text }}
+              </div>
+            </div>
+            <div v-else class="card mb-3">
+              <div class="card-block">
+                {{ player.chosenCard.text }}
+              </div>
+            </div>
           </div>
         </div>
         <hr>
@@ -65,13 +73,13 @@
 
 
       <div v-if="status == 'showWinner'">
-        <h2 class="red">Bravo {{ winner.name }}, tu as désormais {{ winner.score }} points !</h2>
+        <h2 class="red">Bravo {{ winner.name }}, tu as désormais {{ winner.score+1 }} points !</h2>
         <hr>
       </div>
 
       <div v-if="connectedPlayer && !connectedPlayer.isMasterPlayer">
         <div v-for="card in connectedPlayer.cards"
-             v-on:click="selectCardIfConnected(card)"
+             v-on:click="selectCardIfPossible(card)"
              v-bind:class="{'card-primary': connectedPlayer.chosenCard, 'card-info': !connectedPlayer.chosenCard}"
              class="card card-inverse mb-3">
           <div class="card-block">
@@ -82,12 +90,20 @@
       </div>
 
       <div v-if="!connectedPlayer">
-        <p>
-          <input v-model="name" type="text"> <button v-on:click="connectWithName(name)">Se connecter</button>
-          <br>
-          <br>
-          <button v-on:click="reinit()" class="btn btn-sm btn-danger">Réinitialiser</button>
-        </p>
+        <h2 cla>Connexion</h2>
+        <div class="row mb-3">
+          <div class="col-6 col-sm-8">
+            <input v-model="name" class="form-control" placeholder="Nom utilisateur" type="text">
+          </div>
+          <div class="col-6 col-sm-4">
+            <button v-on:click="connectWithName(name)" class="btn btn-success btn-block">Se connecter</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="offset-3 col-6">
+            <button v-on:click="reinit()" class="btn btn-block btn-danger">Réinitialiser la partie</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -190,9 +206,9 @@ export default {
 
       this.chooseNewCards()
     },
-    selectCardIfConnected: function () {
-      if (this.connectedPlayer != null)
-        this.selectCard()
+    selectCardIfPossible: function (card) {
+      if (this.connectedPlayer != null && !this.connectedPlayer.chosenCard)
+        this.selectCard(card)
     },
     chooseNewCards: function () {
       var self = this
@@ -202,7 +218,7 @@ export default {
       dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').push(newCard);
       dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').once('value', function(snapshot) {
         self.connectedPlayer.cards = snapshot.val()
-        var length = Object.keys(self.connectedPlayer.cards).length
+        var length = self.connectedPlayer.cards ? Object.keys(self.connectedPlayer.cards).length : 0
         if (length < 5) {
           self.chooseNewCards()
         }
@@ -302,6 +318,22 @@ export default {
         "status" : "waitingForCards"
       }
       dbRef.child('rooms/0').set(roomContent)
+    },
+    getPlayersWithChosenCards: function(players) {
+      var self = this
+      var result = []
+      Object.keys(self.players).map(function(playerId, index) {
+        var player = self.players[playerId]
+        if (player.chosenCard) {
+          result.push(player)
+        }
+      })
+      result.sort(function compare(a, b){
+        return a.chosenCard.text > b.chosenCard.text
+      })
+      // console.log("players", players)
+      // console.log("result", result)
+      return result
     }
   },
   created: function () {

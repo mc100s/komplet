@@ -27,6 +27,7 @@ h1 {
 }
 h1, h2 {
   font-weight: normal;
+  margin-bottom: 30px;
 }
 
 ul {

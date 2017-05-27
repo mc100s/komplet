@@ -211,10 +211,11 @@ export default {
         this.selectCard(card)
     },
     chooseNewCards: function () {
+      console.log("[DEBUG] BEGIN chooseNewCards")
       var self = this
       if (!this.connectedPlayer.id)
         return
-      var newCard = arrayRandomValue(this.cards)
+      var newCard = pickRandomProperty(this.cards)
       dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').push(newCard);
       dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').once('value', function(snapshot) {
         self.connectedPlayer.cards = snapshot.val()
@@ -224,6 +225,7 @@ export default {
         }
         self.checkStatus()
       });
+      console.log("[DEBUG] END chooseNewCards")
     },
     checkStatus: function () {
       var self = this

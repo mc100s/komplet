@@ -34,13 +34,11 @@
 
     <div class="container">
 
-      <div class="row">
-        <div v-for="player in players" class="col-4 col-sm-3">
-          <div v-on:click="!connectedPlayer ? connect(player) : connectedPlayer = null" v-bind:class="{ 'card-warning': player.isMasterPlayer, 'card-primary': player.chosenCard, 'card-info': !player.chosenCard && !player.isMasterPlayer, 'card-border': connectedPlayer && player.id == connectedPlayer.id }" class="card card-inverse mb-4">
-            <div class="card-block">
-              <div class="card-title">{{ player.score }}</div>
-              <div class="card-text">{{ player.name }}</div>
-            </div>
+      <div class="row justify-content-center mb-3">
+        <div v-for="player in players" class="col-2 col-md-1 player-col">
+          <div v-on:click="!connectedPlayer ? connect(player) : connectedPlayer = null" v-bind:class="{ 'card-warning': player.isMasterPlayer, 'card-primary': player.chosenCard, 'card-info': !player.chosenCard && !player.isMasterPlayer, 'card-border': connectedPlayer && player.id == connectedPlayer.id }" class="card card-inverse card-block">
+            <div class="card-title">{{ player.score }}</div>
+            <div class="card-text">{{ player.name }}</div>
           </div>
         </div>
       </div>
@@ -52,17 +50,16 @@
 
       <div v-if="status == 'waitingBestCardElection'">
         <h2>Les cartes à choisir</h2>
-        <div v-for="player in getPlayersWithChosenCards(players)">
-          <div v-if="player.chosenCard">
-            <div v-if="connectedPlayer && connectedPlayer.isMasterPlayer"
-                  v-on:click="electCard(player)"
-                  class="card card-warning card-inverse mb-3" >
-              <div class="card-block">
+        <div class="row">
+          <div v-for="player in getPlayersWithChosenCards(players)"
+               class="col-6 card-col">
+            <div v-if="player.chosenCard">
+              <div v-if="connectedPlayer && connectedPlayer.isMasterPlayer"
+                    v-on:click="electCard(player)"
+                    class="card card-block card-warning card-inverse player-card" >
                 {{ player.chosenCard.text }}
               </div>
-            </div>
-            <div v-else class="card mb-3">
-              <div class="card-block">
+              <div v-else class="card card-block player-card">
                 {{ player.chosenCard.text }}
               </div>
             </div>
@@ -77,16 +74,18 @@
         <hr>
       </div>
 
-      <div v-if="connectedPlayer && !connectedPlayer.isMasterPlayer">
+      <!-- Player's cards -->
+      <div v-if="connectedPlayer && !connectedPlayer.isMasterPlayer" class="row">
         <div v-for="card in connectedPlayer.cards"
-             v-on:click="selectCardIfPossible(card)"
-             v-bind:class="{'card-primary': connectedPlayer.chosenCard, 'card-info': !connectedPlayer.chosenCard}"
-             class="card card-inverse mb-3">
-          <div class="card-block">
-            {{ card.text }}
+             class="col-6 card-col">
+          <div v-on:click="selectCardIfPossible(card)"
+               v-bind:class="{'card-primary': connectedPlayer.chosenCard, 'card-info': !connectedPlayer.chosenCard}"
+               class="card card-inverse card-block player-card">
+            <div class="card-text">
+              {{ card.text }}
+            </div>
           </div>
         </div>
-
       </div>
 
       <div v-if="!connectedPlayer">
@@ -211,21 +210,24 @@ export default {
         this.selectCard(card)
     },
     chooseNewCards: function () {
-      console.log("[DEBUG] BEGIN chooseNewCards")
       var self = this
       if (!this.connectedPlayer.id)
         return
       var newCard = pickRandomProperty(this.cards)
+      for (var i = 0; i < 10; i++) {
+        if (!this.isCardAlreadyInGame(newCard))
+          break
+          newCard = pickRandomProperty(this.cards)
+      }
       dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').push(newCard);
       dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').once('value', function(snapshot) {
         self.connectedPlayer.cards = snapshot.val()
         var length = self.connectedPlayer.cards ? Object.keys(self.connectedPlayer.cards).length : 0
-        if (length < 5) {
+        if (length < 8) {
           self.chooseNewCards()
         }
         self.checkStatus()
       });
-      console.log("[DEBUG] END chooseNewCards")
     },
     checkStatus: function () {
       var self = this
@@ -336,6 +338,27 @@ export default {
       // console.log("players", players)
       // console.log("result", result)
       return result
+    },
+    isCardAlreadyInGame: function(card) {
+      var self = this
+      var result = false
+      if (!self.players)
+        return result
+      Object.keys(self.players).map(function(playerId, index) {
+        var player = self.players[playerId]
+          console.log("player", player)
+        if (!player.cards)
+          return result
+        Object.keys(player.cards).map(function(cardId, cardIndex) {
+          var curCard = player.cards[cardId]
+          console.log("curCard", curCard)
+          console.log("card", card)
+          if (curCard.text == card.text)
+            result = true;
+        })
+      })
+      return result  
+      // return card.text == "Emmanuel Macron" || card.text == "Donald Trump" || card.text == "Nicolas Sarkozy"  
     }
   },
   created: function () {
@@ -411,6 +434,59 @@ a {
   font-size: 1.5em;
 }
 .card-border {
-  border: 2px solid black;
+  /*outline: 2px solid black;
+  outline-offset: -2px;*/
+  box-shadow: 0 0 0 2px black;
+  /*border: 2px solid black;*/
 }
+
+.player-col {
+  padding: 2px;
+/*  float: none;
+  margin: 0 auto;*/
+}
+.player-col .card-block {
+  padding: 2px;
+}
+.player-col .card-title {
+  margin-bottom: 0px;
+}
+.player-col .card-text {
+  clear: both;
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  line-height: 1em;
+  padding-bottom: 2px;
+  font-size: 0.8rem;
+}
+
+.card-text {
+  color: rgba(255,255,255,.8);
+  font-weight: 500;
+}
+
+.player-card {
+  margin-bottom: .5rem;
+  min-height: 4rem;
+  line-height: 0.9em;
+}
+
+.player-card {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.player-card .card-text {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-col {
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
 </style>

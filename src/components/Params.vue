@@ -140,4 +140,7 @@ li {
 a {
   color: #42b983;
 }
+input.form-control {
+  width: 150px;
+}
 </style>

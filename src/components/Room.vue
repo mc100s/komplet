@@ -36,7 +36,7 @@
 
       <div class="row justify-content-center mb-3">
         <div v-for="player in players" class="col-2 col-md-1 player-col">
-          <div v-on:click="!connectedPlayer ? connect(player) : connectedPlayer = null" v-bind:class="{ 'card-warning': player.isMasterPlayer, 'card-primary': player.chosenCard, 'card-info': !player.chosenCard && !player.isMasterPlayer, 'card-border': connectedPlayer && player.id == connectedPlayer.id }" class="card card-inverse card-block">
+          <div v-on:click="!connectedPlayer ? connect(player) : connectedPlayer = null" v-bind:class="{ 'card-warning': player.isMasterPlayer, 'card-primary': player.chosenCard, 'card-info': !player.chosenCard && !player.isMasterPlayer, 'card-border': connectedPlayer && player['.key'] == connectedPlayer['.key'] }" class="card card-inverse card-block">
             <div class="card-title">{{ player.score }}</div>
             <div class="card-text">{{ player.name }}</div>
           </div>
@@ -147,6 +147,8 @@ export default {
     connect: function (player) {
       var self = this
       this.connectedPlayer = player
+      // console.log("connect")
+      // console.log("this.connectedPlayer", this.connectedPlayer)
     },
     connectWithName: function (inputName) {
       if (inputName == '')
@@ -154,27 +156,32 @@ export default {
       var self = this
       var playerAlreadyInGame = false
       if (self.players) {
-        Object.keys(self.players).map(function(playerId, index) {
-          var player = self.players[playerId]
+        for (var i = 0; i < self.players.length; i++) {
+          var player = self.players[i]
           if (player.name == inputName) {
             self.connectedPlayer = player
             playerAlreadyInGame = true
           }
-        })
+        }
       }
-      // If player not already in game, create new player
+      // If player not already in game, then create new player
       if (!playerAlreadyInGame) {
         var newPlayer = {
           name: inputName,
-          isMasterPlayer: self.players == null,
+          isMasterPlayer: self.players.length == 0,
           score: 0
         }
 
         var playerId = dbRef.child('rooms/0/players').push(newPlayer, function(error) {
           if (!error) {
-            console.log("Joueur créé : ", self.players[playerId])
+            self.connectedPlayer = self.players[self.players.length-1]
+            self.connectedPlayer.playerId = playerId
+            console.log("Joueur créé : ", self.connectedPlayer)
+            console.log("self.players : ", self.players)
+            console.log("playerId : ", playerId)
             dbRef.child('rooms/0/players/'+playerId+'/id').set(playerId, function(snapshot) {
-              self.connectedPlayer = self.players[playerId]
+              // self.connectedPlayer = self.players[playerId]
+              // console.log("self.connectedPlayer : ", self.connectedPlayer)
               self.chooseNewCards()
             })
           }
@@ -187,20 +194,19 @@ export default {
     },
     selectCard: function (card) {
       var self = this
-      var newPostKey = firebase.database().ref().child('test').push().key
 
       // Push chosen card for this sentence
-      dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/chosenCard').set(card , function(snapshot) {
+      dbRef.child('rooms/0/players/' + this.connectedPlayer['.key'] + '/chosenCard').set(card , function(snapshot) {
         self.checkStatus()
       })
 
       // Delete card from player's hand
-      dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards/').orderByChild('text').equalTo(card.text).once('value', function(snapshot) {
+      dbRef.child('rooms/0/players/' + this.connectedPlayer['.key'] + '/cards/').orderByChild('text').equalTo(card.text).once('value', function(snapshot) {
         var updates = {};
         snapshot.forEach(function(child){
           updates[child.key] = null;
         });
-        dbRef.child('rooms/0/players/' + self.connectedPlayer.id + '/cards/').update(updates);
+        dbRef.child('rooms/0/players/' + self.connectedPlayer['.key'] + '/cards/').update(updates);
       })
 
       this.chooseNewCards()
@@ -211,7 +217,8 @@ export default {
     },
     chooseNewCards: function () {
       var self = this
-      if (!this.connectedPlayer.id)
+      console.log("this.connectedPlayer", this.connectedPlayer)
+      if (!this.connectedPlayer || !this.connectedPlayer['.key'])
         return
       var newCard = pickRandomProperty(this.cards)
       for (var i = 0; i < 10; i++) {
@@ -219,8 +226,8 @@ export default {
           break
           newCard = pickRandomProperty(this.cards)
       }
-      dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').push(newCard);
-      dbRef.child('rooms/0/players/' + this.connectedPlayer.id + '/cards').once('value', function(snapshot) {
+      dbRef.child('rooms/0/players/' + this.connectedPlayer['.key'] + '/cards').push(newCard);
+      dbRef.child('rooms/0/players/' + this.connectedPlayer['.key'] + '/cards').once('value', function(snapshot) {
         self.connectedPlayer.cards = snapshot.val()
         var length = self.connectedPlayer.cards ? Object.keys(self.connectedPlayer.cards).length : 0
         if (length < 8) {
@@ -239,12 +246,10 @@ export default {
         }
         if (self.status == 'waitingForCards') {
           var stillWaitingCards = false
-          if (!self.players)
-            return
-          Object.keys(self.players).map(function(playerId, index) {
-            if (!self.players[playerId].chosenCard && !self.players[playerId].isMasterPlayer)
+          for (var i = 0; i < self.players.length; i++) {
+            if (!self.players[i].chosenCard && !self.players[i].isMasterPlayer)
               stillWaitingCards = true
-          })
+          }
           if (!stillWaitingCards) {
             self.status = 'waitingBestCardElection'
             dbRef.child('rooms/0/status').set(self.status)
@@ -254,11 +259,14 @@ export default {
     },
     electCard: function (player) {
       var self = this
-      dbRef.child('rooms/0/players/' + player.id + '/score').set(player.score + 1)
-      Object.keys(self.players).map(function(playerId, index) {
-        dbRef.child('rooms/0/players/' + self.players[playerId].id + '/chosenCard').remove()
-      })
+      console.log("[DEBUG] electCard")
+      console.log("player", player)
+      dbRef.child('rooms/0/players/' + player['.key'] + '/score').set(player.score + 1)
+      for (var i = 0; i < self.players.length; i++) {
+        dbRef.child('rooms/0/players/' + self.players[i]['.key'] + '/chosenCard').remove()
+      }
       this.setStatus('showWinner')
+      delete player['.key']
       dbRef.child('rooms/0/winner').set(player)
       setTimeout(function(){
         dbRef.child('rooms/0/currentSentence').set(pickRandomProperty(self.sentences).text)
@@ -271,19 +279,18 @@ export default {
     },
     chooseNewMasterPlayer: function () {
       var self = this
-      var nbPlayers = Object.keys(self.players).length
+      var nbPlayers = self.players.length
       var indexMasterPlayer = 0
 
-      Object.keys(self.players).map(function(playerId, index) {
-        var player = self.players[playerId]
-        if (player.isMasterPlayer)
-          indexMasterPlayer = (index+1)%nbPlayers // Next index
-      })
+      for (var i = 0; i < self.players.length; i++) {
+        if (self.players[i].isMasterPlayer)
+          indexMasterPlayer = (i+1)%self.players.length // Next index
+      }
 
-      Object.keys(self.players).map(function(playerId, index) {
-        var isMasterPlayer = index == indexMasterPlayer
-        dbRef.child('rooms/0/players/'+playerId+'/isMasterPlayer').set(isMasterPlayer)
-      })
+      for (var i = 0; i < self.players.length; i++) {
+        var isMasterPlayer = i == indexMasterPlayer
+        dbRef.child('rooms/0/players/'+self.players[i]['.key']+'/isMasterPlayer').set(isMasterPlayer)
+      }
     },
     reinit: function () {
       var roomContent = {
@@ -326,12 +333,12 @@ export default {
     getPlayersWithChosenCards: function(players) {
       var self = this
       var result = []
-      Object.keys(self.players).map(function(playerId, index) {
-        var player = self.players[playerId]
+      for (var i = 0; i < self.players.length; i++) {
+        var player = self.players[i]
         if (player.chosenCard) {
           result.push(player)
         }
-      })
+      }
       result.sort(function compare(a, b){
         return a.chosenCard.text > b.chosenCard.text
       })
@@ -344,19 +351,18 @@ export default {
       var result = false
       if (!self.players)
         return result
-      Object.keys(self.players).map(function(playerId, index) {
-        var player = self.players[playerId]
-          console.log("player", player)
+      for (var i = 0; i < self.players.length; i++) {
+        var player = self.players[i]
         if (!player.cards)
           return result
         Object.keys(player.cards).map(function(cardId, cardIndex) {
           var curCard = player.cards[cardId]
-          console.log("curCard", curCard)
-          console.log("card", card)
+          // console.log("curCard", curCard)
+          // console.log("card", card)
           if (curCard.text == card.text)
             result = true;
         })
-      })
+      }
       return result  
       // return card.text == "Emmanuel Macron" || card.text == "Donald Trump" || card.text == "Nicolas Sarkozy"  
     }
@@ -366,7 +372,6 @@ export default {
     dbRef.on('value', function(snapshot) {
       self.sentences = snapshot.val().sentences
       self.room = snapshot.val().rooms[0]
-      self.players = self.room.players
       self.sentenceToComplete = self.room.currentSentence
       self.cards = snapshot.val().cards
       self.checkStatus()
@@ -375,17 +380,45 @@ export default {
     // Updates of every variable on room changes
     roomRef.on('value', function(snapshot) {
       self.room = snapshot.val()
-      self.players = snapshot.val().players
       self.sentenceToComplete = snapshot.val().currentSentence
       self.status = snapshot.val().status
       self.winner = snapshot.val().winner
 
-      if (self.connectedPlayer && self.connectedPlayer.id != null)
-        self.connectedPlayer = self.players[self.connectedPlayer.id]
+      // if (self.connectedPlayer && self.connectedPlayer['.key'] != null)
+      //   self.connectedPlayer = self.players[self.connectedPlayer['.key']]
     });
     db.ref('/room/0/status').on('value', function(snapshot) {
       self.status = snapshot.val()
     })
+  },
+  firebase: function () {
+    return {
+      // players: db.ref('rooms/0/players'),
+      players: {
+        source: db.ref('rooms/0/players'),
+        readyCallback: function () {
+          var self = this
+          db.ref('rooms/0/players').on('value', function(snapshot) {
+            var players = snapshot.val()
+            if (self.connectedPlayer) {
+              var key = self.connectedPlayer['.key']
+              self.connectedPlayer = players[key]
+              self.connectedPlayer['.key'] = key
+            }
+          })
+        }
+      },
+      anObject: {
+        source: db.ref('rooms/0/players'),
+        // optionally bind as an object
+        // asObject: true,
+        // asArray: true,
+        // optionally provide the cancelCallback
+        cancelCallback: function () {},
+        // this is called once the data has been retrieved from firebase
+        readyCallback: function () {}
+      }
+    }
   }
 }
 

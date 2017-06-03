@@ -47,9 +47,24 @@
       <p class="lead">{{ sentenceToComplete }}</p>
       <hr>
 
+      <div v-if="status == 'waitingForCards' && connectedPlayer && connectedPlayer.isMasterPlayer" class="dialog">
+        <img src="../assets/monkey.png" class="monkey pull-right">
+
+        <div class="balloon">
+          <p>Hey {{ connectedPlayer.name }}, tu es le maitre du tour ! Dès que tout le monde aura joué sa carte, tu devras choisir celle que tu préfères !</p>
+          <p class="mb-0">
+            Pour le moment, on attend :
+            <ul class="mb-0">
+              <li v-for="player in players" v-if="!player.chosenCard && !player.isMasterPlayer">
+                <strong>{{ player.name }} </strong> 
+              </li>
+            </ul>
+          </p>
+        </div>
+      </div>
+
 
       <div v-if="status == 'waitingBestCardElection'">
-        <h2>Les cartes à choisir</h2>
         <div class="row">
           <div v-for="player in getPlayersWithChosenCards(players)"
                class="col-6 card-col">
@@ -65,12 +80,36 @@
             </div>
           </div>
         </div>
+
+        <div class="dialog mt-4">
+          <img src="../assets/monkey.png" class="monkey pull-right">
+
+          <div class="balloon">
+            <div v-if="connectedPlayer && connectedPlayer.isMasterPlayer" class="mb-0">
+              Choisis la carte qui te plait le plus !
+            </div>
+            <div v-else class="mb-0">
+              C'est à  
+              <strong v-for="player in players" v-if="player.isMasterPlayer">
+                {{ player.name }}
+              </strong>
+              de choisir la carte qui lui plait le plus !
+            </div> 
+          </div>
+        </div>
         <hr>
+
       </div>
 
 
       <div v-if="status == 'showWinner'">
-        <h2 class="red">Bravo {{ winner.name }}, tu as désormais {{ winner.score+1 }} points !</h2>
+        <div class="dialog mt-4">
+          <img src="../assets/monkey.png" class="monkey pull-right">
+
+          <div class="balloon lead">
+            Bravo {{ winner.name }}, tu as désormais {{ winner.score+1 }} points grâce à la carte {{ winner.chosenCard.text }} !
+          </div>
+        </div>
         <hr>
       </div>
 
@@ -108,6 +147,7 @@
 
     <!-- <h2>Divers</h2> -->
     <!-- <div>Nom de la room: {{ $route.params.roomName }}</div> -->
+    <div class="mt-5"><small>{{ status }}</small></div>
   </div>
 </template>
 
@@ -488,5 +528,28 @@ a {
   padding-left: 5px;
   padding-right: 5px;
 }
+
+.dialog {
+  position: relative;
+  padding-top: 10px;
+}
+
+.dialog img.monkey {
+  width: 80px;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+.dialog .balloon {
+  border: 2px solid #965500;
+  border-radius: 10px;
+  padding: 10px;
+  margin-right: 100px;
+  /*background-color: #fafafa;*/
+}
+
+
+
 
 </style>

@@ -44,14 +44,14 @@
       </div>
 
 
-      <p class="lead">{{ sentenceToComplete }}</p>
+      <p class="lead">« {{ sentenceToComplete }} »</p>
       <hr>
 
       <div v-if="status == 'waitingForCards' && connectedPlayer && connectedPlayer.isMasterPlayer" class="dialog">
         <img src="../assets/monkey.png" class="monkey pull-right">
 
         <div class="balloon">
-          <p>Hey {{ connectedPlayer.name }}, tu es le maitre du tour ! Dès que tout le monde aura joué sa carte, tu devras choisir celle que tu préfères !</p>
+          <p>Hey {{ connectedPlayer.name }}, tu es le maitre du tour ! Dès que tout le monde aura joué sa carte, tu devras choisir celle que tu trouves qui va le mieux avec le texte du dessus !</p>
           <p class="mb-0">
             Pour le moment, on attend :
             <ul class="mb-0">
@@ -106,8 +106,8 @@
         <div class="dialog mt-4">
           <img src="../assets/monkey.png" class="monkey pull-right">
 
-          <div class="balloon lead">
-            Bravo {{ winner.name }}, tu as désormais {{ winner.score+1 }} points grâce à la carte {{ winner.chosenCard.text }} !
+          <div class="balloon">
+            Bravo <strong>{{ winner.name }}</strong>, tu as désormais {{ winner.score+1 }} points grâce à la carte "<strong>{{ winner.chosenCard.text }}</strong>" !
           </div>
         </div>
         <hr>
@@ -304,7 +304,7 @@ export default {
         dbRef.child('rooms/0/currentSentence').set(pickRandomProperty(self.sentences).text)
         self.setStatus('waitingForCards')
         self.chooseNewMasterPlayer()
-      }, 3000)
+      }, 5000)
     },
     setStatus: function (status) {
       dbRef.child('rooms/0/status').set(status)

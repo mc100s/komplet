@@ -1,10 +1,10 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
+    <img src="../assets/white-russian.png">
     <h2>Choix de la room</h2>
     <ul>
-      <li><router-link to="bouret">Bouret</router-link></li>
-      <li><router-link to="test">Test</router-link></li>
+      <li><router-link to="evg">EVG</router-link></li>
     </ul>
   </div>
 </template>
@@ -14,7 +14,7 @@ export default {
   name: 'hello',
   data () {
     return {
-      msg: 'Bienvenue sur Komplet'
+      msg: 'WhiteRussian'
     }
   }
 }
@@ -22,11 +22,9 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h1 {
-  margin-top: 42px;
-}
 h1, h2 {
   font-weight: normal;
+  margin-top: 42px;
   margin-bottom: 30px;
 }
 
@@ -41,6 +39,10 @@ li {
 }
 
 a {
-  color: #42b983;
+  color: #F44336;
+}
+
+img {
+  height: 150px;
 }
 </style>

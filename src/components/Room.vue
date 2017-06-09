@@ -6,7 +6,7 @@
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="navbar-brand">
-          <a  href="#"><i class="fa fa-lg fa-home" aria-hidden="true"> </i> Komplet</a> / {{ $route.params.roomName }}
+          <a  href="#"><i class="fa fa-lg fa-star" aria-hidden="true"> </i> WhiteRussian</a> / {{ $route.params.roomName }}
           
         </div>
 
@@ -48,7 +48,7 @@
       <hr>
 
       <div v-if="status == 'waitingForCards' && connectedPlayer && connectedPlayer.isMasterPlayer" class="dialog">
-        <img src="../assets/monkey.png" class="monkey pull-right">
+        <img src="../assets/white-russian.png" class="character pull-right">
 
         <div class="balloon">
           <p>Hey {{ connectedPlayer.name }}, tu es le maitre du tour ! Dès que tout le monde aura joué sa carte, tu devras choisir celle que tu trouves qui va le mieux avec le texte du dessus !</p>
@@ -82,7 +82,7 @@
         </div>
 
         <div class="dialog mt-4">
-          <img src="../assets/monkey.png" class="monkey pull-right">
+          <img src="../assets/white-russian.png" class="character pull-right">
 
           <div class="balloon">
             <div v-if="connectedPlayer && connectedPlayer.isMasterPlayer" class="mb-0">
@@ -104,7 +104,7 @@
 
       <div v-if="status == 'showWinner'">
         <div class="dialog mt-4">
-          <img src="../assets/monkey.png" class="monkey pull-right">
+          <img src="../assets/white-russian.png" class="character pull-right">
 
           <div class="balloon">
             Bravo <strong>{{ winner.name }}</strong>, tu as désormais {{ winner.score+1 }} points grâce à la carte "<strong>{{ winner.chosenCard.text }}</strong>" !
@@ -493,7 +493,7 @@ li {
 }
 
 a {
-  color: #42b983;
+  color: #F44336;
 }
 
 .red {
@@ -567,7 +567,7 @@ a {
   padding-top: 10px;
 }
 
-.dialog img.monkey {
+.dialog img.character {
   width: 80px;
   position: absolute;
   bottom: 0;
@@ -575,7 +575,7 @@ a {
 }
 
 .dialog .balloon {
-  border: 2px solid #965500;
+  border: 2px solid #212121;
   border-radius: 10px;
   padding: 10px;
   margin-right: 100px;
